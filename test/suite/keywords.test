@@ -1,3 +1,6 @@
 plugin_register commands/query_keywords
 
-query_keywords "hoge + test OR or - NOT (kakko + kakko2)"
+table_create Entries TABLE_NO_KEY
+column_create Entries title COLUMN_SCALAR ShortText
+
+query_keywords Entries "hoge + test OR or - NOT (kakko + kakko2) + title:@'huga'"

@@ -11,9 +11,23 @@ command_query_keywords(grn_ctx *ctx, GNUC_UNUSED int nargs, GNUC_UNUSED grn_obj 
                        grn_user_data *user_data)
 {
   grn_obj *query;
+  grn_obj *table_name;
   grn_obj *table = NULL, *default_column = NULL, *record = NULL, *expr = NULL;
   grn_expr_flags flags;
   grn_rc rc = GRN_SUCCESS;
+
+  table_name = grn_plugin_proc_get_var(ctx, user_data, "table", -1);
+  if (GRN_TEXT_LEN(table_name) == 0) {
+    GRN_PLUGIN_ERROR(ctx, GRN_INVALID_ARGUMENT,
+                     "[query_keywords] missing table_name");
+    return NULL;
+  }
+  table = grn_ctx_get(ctx, GRN_TEXT_VALUE(table_name), GRN_TEXT_LEN(table_name));
+  if (!table) {
+    GRN_PLUGIN_ERROR(ctx, GRN_INVALID_ARGUMENT,
+                     "[query_keywords] missing table");
+    return NULL;
+  }
 
   query = grn_plugin_proc_get_var(ctx, user_data, "query", -1);
 
@@ -23,19 +37,9 @@ command_query_keywords(grn_ctx *ctx, GNUC_UNUSED int nargs, GNUC_UNUSED grn_obj 
     return NULL;
   }
 
-  table = grn_table_create(ctx, NULL, 0, NULL,
-                           GRN_TABLE_HASH_KEY,
-                           grn_ctx_at(ctx, GRN_DB_SHORT_TEXT),
-                           NULL);
-  if (!table) {
-    GRN_PLUGIN_ERROR(ctx, GRN_NO_MEMORY_AVAILABLE,
-                     "[query_keywords] failed to create table");
-    return NULL;
-  }
-
   default_column = grn_obj_column(ctx, table,
-                                  GRN_COLUMN_NAME_KEY,
-                                  GRN_COLUMN_NAME_KEY_LEN);
+                                  GRN_COLUMN_NAME_ID,
+                                  GRN_COLUMN_NAME_ID_LEN);
 
   if (!default_column) {
      GRN_PLUGIN_ERROR(ctx, GRN_NO_MEMORY_AVAILABLE,
@@ -106,10 +110,11 @@ GRN_PLUGIN_INIT(GNUC_UNUSED grn_ctx *ctx)
 grn_rc
 GRN_PLUGIN_REGISTER(grn_ctx *ctx)
 {
-  grn_expr_var vars[1];
+  grn_expr_var vars[2];
 
-  grn_plugin_expr_var_init(ctx, &vars[0], "query", -1);
-  grn_plugin_command_create(ctx, "query_keywords", -1, command_query_keywords, 1, vars);
+  grn_plugin_expr_var_init(ctx, &vars[0], "table", -1);
+  grn_plugin_expr_var_init(ctx, &vars[1], "query", -1);
+  grn_plugin_command_create(ctx, "query_keywords", -1, command_query_keywords, 2, vars);
 
   return ctx->rc;
 }
